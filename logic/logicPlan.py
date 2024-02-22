@@ -151,7 +151,6 @@ def atLeastOne(literals: List[Expr]) -> Expr:
     True
     """
     "*** BEGIN YOUR CODE HERE ***"
-    # negated_literals = [~literal for literal in literals]
     clause = disjoin(literals)
     return clause
     "*** END YOUR CODE HERE ***"
@@ -180,12 +179,12 @@ def exactlyOne(literals: List[Expr]) -> Expr:
     the expressions in the list is true.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    at_least_one = disjoin(literals)  # Ensure at least one is true
+    at_least_one = disjoin(literals)
     at_most_one_clauses = []
     for i in range(len(literals)):
         for j in range(i + 1, len(literals)):
             at_most_one_clauses.append(disjoin([~literals[i], ~literals[j]]))
-    at_most_one = conjoin(at_most_one_clauses)  # Ensure at most one is true
+    at_most_one = conjoin(at_most_one_clauses)
     return conjoin([at_least_one, at_most_one])
     "*** END YOUR CODE HERE ***"
 
