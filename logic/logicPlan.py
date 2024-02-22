@@ -179,13 +179,7 @@ def exactlyOne(literals: List[Expr]) -> Expr:
     the expressions in the list is true.
     """
     "*** BEGIN YOUR CODE HERE ***"
-    at_least_one = disjoin(literals)
-    at_most_one_clauses = []
-    for i in range(len(literals)):
-        for j in range(i + 1, len(literals)):
-            at_most_one_clauses.append(disjoin([~literals[i], ~literals[j]]))
-    at_most_one = conjoin(at_most_one_clauses)
-    return conjoin([at_least_one, at_most_one])
+    return atLeastOne(literals) & atMostOne(literals)
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
@@ -218,7 +212,8 @@ def pacmanSuccessorAxiomSingle(x: int, y: int, time: int, walls_grid: List[List[
         return None
     
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    current = PropSymbolExpr(pacman_str, x, y, time=now)
+    return current % disjoin(possible_causes)
     "*** END YOUR CODE HERE ***"
 
 
@@ -286,13 +281,15 @@ def pacphysicsAxioms(t: int, all_coords: List[Tuple], non_outer_wall_coords: Lis
         - Results of calling successorAxioms(...), describing how Pacman can end in various
             locations on this time step. Consider edge cases. Don't call if None.
     """
-    pacphysics_sentences = []
-
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
-    "*** END YOUR CODE HERE ***"
-
+    pacphysics_sentences = []
+    pacphysics_sentences += [PropSymbolExpr(wall_str, x, y) >> ~PropSymbolExpr(pacman_str, x, y, time=t) for x, y in all_coords]
+    pacphysics_sentences += [exactlyOne([PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_outer_wall_coords])]
+    pacphysics_sentences += [exactlyOne([PropSymbolExpr(action, time=t) for action in DIRECTIONS])]
+    pacphysics_sentences += [] if sensorModel is None else [sensorModel(t, non_outer_wall_coords)]
+    pacphysics_sentences += [successorAxioms(t, walls_grid, non_outer_wall_coords)] if successorAxioms and t > 0 else []
     return conjoin(pacphysics_sentences)
+    "*** END YOUR CODE HERE ***"
 
 
 def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], action0, action1, problem):
@@ -323,7 +320,17 @@ def checkLocationSatisfiability(x1_y1: Tuple[int, int], x0_y0: Tuple[int, int], 
     KB.append(conjoin(map_sent))
 
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    KB += [pacphysicsAxioms(0, all_coords, non_outer_wall_coords, walls_grid),
+           pacphysicsAxioms(1, all_coords, non_outer_wall_coords, walls_grid)]
+    KB += [allLegalSuccessorAxioms(1, walls_grid, non_outer_wall_coords)]
+    KB += [PropSymbolExpr(pacman_str, x0, y0, time=0),
+           PropSymbolExpr(action0, time=0),
+           PropSymbolExpr(action1, time=1)]
+
+    pacman_at_1 = conjoin(KB) & PropSymbolExpr(pacman_str, x1, y1, time=1)
+    pacman_not_at_1 = conjoin(KB) & ~PropSymbolExpr(pacman_str, x1, y1, time=1)
+
+    return findModel(pacman_at_1), findModel(pacman_not_at_1)
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
