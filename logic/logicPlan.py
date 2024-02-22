@@ -355,9 +355,30 @@ def positionLogicPlan(problem) -> List:
     non_wall_coords = [loc for loc in all_coords if loc not in walls_list]
     actions = [ 'North', 'South', 'East', 'West' ]
     KB = []
-
+    # Add to KB: Initial knowledge: Pacman’s initial location at timestep 0
+    # for t in range(50) (because Autograder will not test on layouts requiring ≥ 50 timesteps)
+    #   1. Print time step; this is to see that the code is running and how far it is.
+    #   2. Add to KB: Initial knowledge: Pacman can only be at exactlyOne of the locations in non_wall_coords at 
+    #   timestep t. This is similar to pacphysicsAxioms, but don’t use that method since we are using 
+    #   non_wall_coors when generating the list of possible locations in the first place (and walls_grid later).
+    #   3. Is there a satisfying assignment for the variables given the knowledge base so far? Use findModel 
+    #   and pass in the Goal Assertion and KB.
+    #       - If there is, return a sequence of actions from start to goal using extractActionSequence.
+    #       - Here, Goal Assertion is the expression asserting that Pacman is at the goal at timestep t.
+    #   4. Add to KB: Pacman takes exactly one action per timestep.
+    #   5. Add to KB: Transition Model sentences: call pacmanSuccessorAxiomSingle(...) 
+    #   for all possible pacman positions in non_wall_coords.
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    KB += [PropSymbolExpr(pacman_str, x0, y0, time=0)]
+    for t in range(50):
+        print(t)
+        KB += [exactlyOne([PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords])]
+        is_satisfied = findModel(conjoin(KB) & PropSymbolExpr(pacman_str, xg, yg, time=t))
+        if is_satisfied:
+            return extractActionSequence(is_satisfied, actions)
+        KB += [exactlyOne([PropSymbolExpr(action, time=t) for action in actions])]
+        KB += [pacmanSuccessorAxiomSingle(x, y, t+1, walls_grid) for x, y in non_wall_coords]
+    return []
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
