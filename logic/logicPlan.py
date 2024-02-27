@@ -406,8 +406,25 @@ def foodLogicPlan(problem) -> List:
 
     KB = []
 
-    "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    "*** BEGIN YOUR CODE HERE ***"        
+    KB += [PropSymbolExpr(food_str, x, y, time=0) for x, y in food]
+    KB.append(PropSymbolExpr(pacman_str, x0, y0, time=0))
+
+    for t in range(50):
+        print(t)
+        KB.append(exactlyOne([PropSymbolExpr(pacman_str, x, y, time=t) for x, y in non_wall_coords]))
+        goal_food = conjoin([~PropSymbolExpr(food_str, x, y, time=t) for x, y in food])
+        is_satisfied = findModel(conjoin(KB) & goal_food)
+        if is_satisfied:
+            return extractActionSequence(is_satisfied, actions)
+        KB.append(exactlyOne([PropSymbolExpr(action, time=t) for action in actions]))        
+        KB += [pacmanSuccessorAxiomSingle(x, y, t + 1, walls) for x, y in non_wall_coords]
+        for x, y in food:
+            A = ~PropSymbolExpr(food_str, x, y, time=t+1)
+            B = (PropSymbolExpr(pacman_str, x, y, time=t) & PropSymbolExpr(food_str, x, y, time=t))
+            C = ~PropSymbolExpr(food_str, x, y, time=t)
+            KB.append(A % (B | C))
+    return []
     "*** END YOUR CODE HERE ***"
 
 #______________________________________________________________________________
@@ -424,12 +441,41 @@ def localization(problem, agent) -> Generator:
     non_outer_wall_coords = list(itertools.product(range(1, problem.getWidth()+1), range(1, problem.getHeight()+1)))
 
     KB = []
-
+    # Add to KB: where the walls are (walls_list) and aren’t (not in walls_list).
+    # for t in range(agent.num_timesteps):
+    #   - Add pacphysics, action, and percept information to KB.
+    #   - Find possible pacman locations with updated KB.
+    #   - Call agent.moveToNextState(action_t) on the current agent action at timestep t.
+    #  yield the possible locations.
+    
+    # ~ Find possible pacman locations with updated KB ~
+    # possible_locations = []
+    # Iterate over non_outer_wall_coords.
+    #   - Can we prove whether Pacman is at (x,y)? Can we prove whether Pacman is not at (x,y)? Use entails and the KB.
+    #   - If there exists a satisfying assignment where Pacman is at (x,y) at time t, add (x,y) to possible_locations.
+    #   - Add to KB: (x,y) locations where Pacman is provably at, at time t.
+    #   - Add to KB: (x,y) locations where Pacman is provably not at, at time t.
+    #   Hint: check if the results of entails contradict each other (i.e. KB entails A and entails ¬A). If they do, print feedback to help debugging.
     "*** BEGIN YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
+    for x, y in all_coords:
+        if (x, y) in walls_list:
+            KB += [PropSymbolExpr(wall_str, x, y)]
+        else:
+            KB += [~PropSymbolExpr(wall_str, x, y)]
+            
     for t in range(agent.num_timesteps):
         "*** END YOUR CODE HERE ***"
+        KB.append(pacphysicsAxioms(t, all_coords, non_outer_wall_coords, walls_grid, sensorModel=sensorAxioms, successorAxioms=allLegalSuccessorAxioms))
+        percept_rules = agent.getPercepts()
+        KB.append(fourBitPerceptRules(t, percept_rules))
+        possible_locations = []
+        for x, y in non_outer_wall_coords:
+            if entails(conjoin(KB), PropSymbolExpr(pacman_str, x, y, time=t)):
+                possible_locations.append((x, y))
+            KB.append(PropSymbolExpr(pacman_str, x, y, time=t))
+            KB.append(~PropSymbolExpr(pacman_str, x, y, time=t))
+        print(possible_locations)
+        agent.moveToNextState(agent.action_t[t])
         yield possible_locations
 
 #______________________________________________________________________________
